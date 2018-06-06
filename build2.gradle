@@ -1,0 +1,48 @@
+apply plugin: 'java'
+
+def qdslDbUrl = 'jdbc:mysql://localhost:3306/sample_db?user=test_user&password=hogehoge'
+def qdslDestDir = 'src/main/qdsl-generated'
+def qdslDestPackage = 'sample.model'
+
+buildscript {
+	repositories {
+		jcenter()
+	}
+
+	dependencies {
+		// コード生成用の依存モジュール定義
+		classpath 'com.mysema.querydsl:querydsl-sql-codegen:3.6.3'
+		classpath 'mysql:mysql-connector-java:5.1.35'
+	}
+}
+
+repositories {
+	jcenter()
+}
+
+dependencies {
+	compile 'com.mysema.querydsl:querydsl-sql:3.6.3'
+}
+
+task generate << {
+	// DB 接続
+	def con = new com.mysql.jdbc.Driver().connect(qdslDbUrl, null)
+
+	def exporter = new com.mysema.query.sql.codegen.MetaDataExporter()
+
+	exporter.targetFolder = new File(qdslDestDir)
+	exporter.packageName = qdslDestPackage
+	// コード生成の実行
+	exporter.export(con.metaData)
+
+	con.close()
+}
+
+compileJava {
+	dependsOn generate
+	sourceSets.main.java.srcDir qdslDestDir
+}
+
+clean {
+	delete qdslDestDir
+}

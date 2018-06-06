@@ -1,0 +1,50 @@
+apply plugin: 'java'
+// DB 接続 URL
+def qdslDbUrl = 'jdbc:mysql://localhost:3306/sample_db?user=test_user&password=hogehoge'
+// コード生成先ディレクトリ
+def qdslDestDir = 'src/main/qdsl-generated'
+// 生成するコードの所属パッケージ
+def qdslDestPackage = 'sample.model'
+
+repositories {
+	jcenter()
+}
+
+configurations {
+	querydsl
+}
+
+dependencies {
+	// コード生成用の依存モジュール定義
+	querydsl 'com.mysema.querydsl:querydsl-sql-codegen:3.6.3'
+	querydsl 'mysql:mysql-connector-java:5.1.35'
+	querydsl 'org.slf4j:slf4j-simple:1.7.12'
+
+	compile 'com.mysema.querydsl:querydsl-sql:3.6.3'
+}
+
+task generate << {
+	// Ant 用のタスク定義
+	ant.taskdef(
+		name: 'export',
+		classname: 'com.mysema.query.sql.ant.AntMetaDataExporter',
+		classpath: configurations.querydsl.asPath
+	)
+
+	// コード生成の実行
+	ant.export(
+		jdbcDriverClass: 'com.mysql.jdbc.Driver',
+		dbUrl: qdslDbUrl,
+		targetSourceFolder: qdslDestDir,
+		targetPackage: qdslDestPackage
+	)
+}
+
+compileJava {
+	dependsOn generate
+	sourceSets.main.java.srcDir qdslDestDir
+}
+
+clean {
+	delete qdslDestDir
+}

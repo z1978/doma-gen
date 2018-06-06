@@ -63,7 +63,15 @@ repositories {
     maven {url 'https://oss.sonatype.org/content/repositories/snapshots/'}
 }
 
+configurations {
+	domaGenRuntime
+}
+
 dependencies {
+	compile('mysql:mysql-connector-java:5.1.41')
+	def domaGenVersion = "2.12.0"
+	domaGenRuntime("org.seasar.doma:doma-gen:${domaGenVersion}")
+
     compile "org.seasar.doma:doma:${dependentVersion}"
     compile 'org.freemarker:freemarker:2.3.20'
     compile 'org.apache.ant:ant:1.9.3'
@@ -134,6 +142,16 @@ uploadArchives {
             }
         }
     }
+}
+
+task genTask2 << {
+	ant.taskdef(resource: 'domagentask.properties',
+		classpath: configurations.domaGenRuntime.asPath)
+	ant.gen(url: 'jdbc:mysql://localhost:3306/sample_db', user: 'test_user', password: 'hogehoge') {
+		entityConfig()
+		daoConfig()
+		sqlConfig()
+	}
 }
 
 apply from:'eclipse.gradle'
