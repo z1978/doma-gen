@@ -1,0 +1,53 @@
+//--------------------------------------
+// 適当なタスクを定義しておく
+//--------------------------------------
+
+// タスク１：依存先なし
+task myTask1 {
+    doLast {
+        println 'task1 called.'
+    }
+}
+
+// タスク２：依存先 - タスク１
+task myTask2(dependsOn: 'myTask1') {
+    doLast {
+        println 'task2 called.'
+    }
+}
+
+// タスク３：依存先 - タスク２
+task myTask3(dependsOn: 'myTask2') {
+    doLast {
+        println 'task3 called.'
+    }
+}
+
+// タスク４：依存先 - タスク３、タスク２
+task myTask4(dependsOn: ['myTask3', 'myTask2']) {
+    doLast {
+        println 'task4 called.'
+    }
+}
+
+//--------------------------------------
+// 本題：タスクを再帰呼び出しする関数
+//--------------------------------------
+Closure callTask
+callTask = {Task t ->
+    t.taskDependencies.getDependencies().each { callTask it }
+    if (!t.didWork) {
+        println ":$t.name"
+        t.execute()
+    }
+}
+
+//--------------------------------------
+// コマンドから呼び出すタスク
+//--------------------------------------
+task myTask {
+    doLast {
+        println 'sequential execution of tasks.'
+        callTask myTask4
+    }
+}

@@ -154,4 +154,81 @@ task genTask2 << {
 	}
 }
 
+// DB 接続 URL
+def qdslDbUrl = 'jdbc:mysql://localhost:3306/sample_db?user=test_user&password=hogehoge'
+// コード生成先ディレクトリ
+def qdslDestDir = 'src/main/qdsl-generated'
+// 生成するコードの所属パッケージ
+def qdslDestPackage = 'sample.model'
+task myGenTask2 << {
+	// Ant 用のタスク定義
+	ant.taskdef(
+		name: 'export',
+		classname: 'com.mysema.query.sql.ant.AntMetaDataExporter',
+		classpath: configurations.querydsl.asPath
+	)
+
+	// コード生成の実行
+	ant.export(
+		jdbcDriverClass: 'com.mysql.jdbc.Driver',
+		dbUrl: qdslDbUrl,
+		targetSourceFolder: qdslDestDir,
+		targetPackage: qdslDestPackage
+	)
+}
+
 apply from:'eclipse.gradle'
+
+//--------------------------------------
+// 適当なタスクを定義しておく
+//--------------------------------------
+
+// タスク１：依存先なし
+task myTask1 {
+	doLast {
+		println 'task1 called.'
+	}
+}
+
+// タスク２：依存先 - タスク１
+task myTask2(dependsOn: 'myTask1') {
+	doLast {
+		println 'task2 called.'
+	}
+}
+
+// タスク３：依存先 - タスク２
+task myTask3(dependsOn: 'myTask2') {
+	doLast {
+		println 'task3 called.'
+	}
+}
+
+// タスク４：依存先 - タスク３、タスク２
+task myTask4(dependsOn: ['myTask3', 'myTask2']) {
+	doLast {
+		println 'task4 called.'
+	}
+}
+
+//--------------------------------------
+// 本題：タスクを再帰呼び出しする関数
+//--------------------------------------
+Closure callTask
+callTask = {Task t ->
+	t.taskDependencies.getDependencies().each { callTask it }
+	if (!t.didWork) {
+		println ":$t.name"
+		t.execute()
+	}
+}
+
+//--------------------------------------
+// コマンドから呼び出すタスク
+//--------------------------------------
+task myTask {
+	doLast {
+		println 'sequential execution of tasks.'
+		callTask myTask4
+	}
+}
